@@ -39,7 +39,7 @@ function Login() {
         throw new Error();
       }
     } catch {
-      setError("User not found");
+      setError("Error logging in");
     }
     setLoading(false);
   }

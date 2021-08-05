@@ -7,27 +7,20 @@ function AuthProvider({ children }) {
 
   useEffect(() => {
     (async function helper() {
-      await updateUser()
-        .then(() => {
-          setLoading(false);
-        })
-        .catch(() => {
-          throw new Error("No user found");
-        });
+      await updateUser().finally(() => setLoading(false));
     })();
   }, []);
 
   async function updateUser() {
-    const res = await fetch(`${process.env.REACT_APP_SERVER_URL}/auth/user`);
-
     try {
+      const res = await fetch(`${process.env.REACT_APP_SERVER_URL}/auth/user`);
       const data = await res.json();
       if (data.statusCode === 500) {
         throw new Error("No user found");
       }
       setCurrentUser(data);
-      setLoading(false);
     } catch (e) {
+      setCurrentUser(null);
       console.log(e);
     }
   }

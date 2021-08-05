@@ -3,7 +3,7 @@ import { auth } from '../firebase';
 
 @Injectable()
 export class AuthService {
-  login(email: string, password: string) {
+  login(email: string, password: string): Promise<string> {
     const res = auth
       .signInWithEmailAndPassword(email, password)
       .then(() => 'yes')
@@ -12,7 +12,7 @@ export class AuthService {
     return res;
   }
 
-  signup(email: string, password: string) {
+  signup(email: string, password: string): Promise<string> {
     return auth
       .createUserWithEmailAndPassword(email, password)
       .then(() => 'yes')
@@ -31,8 +31,11 @@ export class AuthService {
     return auth.sendPasswordResetEmail(email);
   }
 
-  async editPassword(password: string) {
+  async editPassword(password: string): Promise<string> {
     const user = auth.currentUser;
-    await user.updatePassword(password);
+    return await user
+      .updatePassword(password)
+      .then(() => 'yes')
+      .catch(() => 'no');
   }
 }

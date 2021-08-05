@@ -57,7 +57,13 @@ export class AuthController {
 
   @Post('edit-password')
   async editPassword(@Res() res: Response, @Body('password') password: string) {
-    await this.authService.editPassword(password);
-    res.status(HttpStatus.OK).json({ message: 'Changed password!' });
+    const response = await this.authService.editPassword(password);
+    if (response === 'yes') {
+      res.status(HttpStatus.OK).json({ message: 'Changed password!' });
+    } else {
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: 'Error updating' });
+    }
   }
 }
