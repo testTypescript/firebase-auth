@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useContext } from "react";
 import { Link, useHistory } from "react-router-dom";
+import { AuthContext } from "../contexts/AuthContext";
 
 function Signup() {
   const emailRef = useRef();
@@ -8,6 +9,7 @@ function Signup() {
   const [error, setError] = useState();
   const [loading, setLoading] = useState(false);
   const history = useHistory();
+  const { signup } = useContext(AuthContext);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -18,33 +20,26 @@ function Signup() {
       return;
     }
 
+    const body = {
+      email: emailRef.current.value,
+      password: passwordRef.current.value,
+    };
+
     try {
       setLoading(true);
-      const body = {
-        email: emailRef.current.value,
-        password: passwordRef.current.value,
-      };
-      const res = await fetch(
-        `${process.env.REACT_APP_SERVER_URL}/auth/signup`,
-        {
-          method: "post",
-          body: JSON.stringify(body),
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        }
-      );
-      if (res.status === 200) {
-        history.push("/login");
-        return;
-      } else {
-        throw new Error();
+
+      const res = await signup(body);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message);
       }
-    } catch {
-      setError("Failed to create account");
+
+      history.push("/login");
+    } catch (e) {
+      setError(e.message);
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (

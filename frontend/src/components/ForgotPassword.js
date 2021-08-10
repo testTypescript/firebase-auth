@@ -1,29 +1,20 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useContext } from "react";
 import { Link } from "react-router-dom";
+import { AuthContext } from "../contexts/AuthContext";
 
 function ForgotPassword() {
   const emailRef = useRef();
   const [message, setMessage] = useState();
   const [loading, setLoading] = useState(false);
+  const { forgotPassword } = useContext(AuthContext);
 
   async function handleSubmit(e) {
     setMessage("");
     e.preventDefault();
 
     setLoading(true);
-    const res = await fetch(
-      `${process.env.REACT_APP_SERVER_URL}/auth/reset-password`,
-      {
-        method: "post",
-        body: JSON.stringify({ email: emailRef.current.value }),
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      }
-    );
-    console.log(res);
-    if (res.status !== 200) {
+    const res = await forgotPassword(emailRef.current.value);
+    if (!res.ok) {
       setMessage("User not found");
     } else {
       setMessage("Sent to your email!");

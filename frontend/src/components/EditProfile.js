@@ -1,11 +1,28 @@
-import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useRef, useState, useEffect, useContext } from "react";
+import { Link, useHistory } from "react-router-dom";
+import { AuthContext } from "../contexts/AuthContext";
 
 function EditProfile() {
+  const { verify, editProfile, setCurrentUser } = useContext(AuthContext);
   const passwordRef = useRef();
   const confirmRef = useRef();
   const [message, setMessage] = useState();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const history = useHistory();
+
+  useEffect(() => {
+    verify()
+      .then((res) => {
+        if (!res.ok) {
+          throw Error(res.message);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        history.push("/login");
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -16,25 +33,19 @@ function EditProfile() {
       return;
     }
 
-    setLoading(true);
-    const res = await fetch(
-      `${process.env.REACT_APP_SERVER_URL}/auth/edit-password`,
-      {
-        method: "post",
-        body: JSON.stringify({ password: passwordRef.current.value }),
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      }
-    );
-    if (res.status !== 200) {
-      setMessage("User not found");
+    const res = await editProfile(passwordRef.current.value);
+    const data = await res.json();
+
+    if (!res.ok) {
+      setMessage(data.message);
     } else {
       setMessage("Password has been reset!");
+      setCurrentUser(data.user);
     }
+  }
 
-    setLoading(false);
+  if (loading) {
+    return <p>Loading...</p>;
   }
 
   return (
@@ -54,9 +65,7 @@ function EditProfile() {
           placeholder="Leave blank to not update"
           ref={confirmRef}
         />
-        <button disabled={loading} type="submit">
-          Update
-        </button>
+        <button type="submit">Update</button>
       </form>
       <Link to="/">Back to dashboard</Link>
     </>

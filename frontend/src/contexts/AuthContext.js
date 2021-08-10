@@ -1,40 +1,109 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useState } from "react";
+
 const AuthContext = createContext();
 
 function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState();
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async function helper() {
-      await updateUser().finally(() => setLoading(false));
-    })();
-  }, []);
+  function signup(body) {
+    return fetch(`${process.env.REACT_APP_SERVER_URL}/auth/signup`, {
+      method: "post",
+      body: JSON.stringify(body),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    });
+  }
 
-  async function updateUser() {
-    try {
-      const res = await fetch(`${process.env.REACT_APP_SERVER_URL}/auth/user`);
-      const data = await res.json();
-      if (data.statusCode === 500) {
-        throw new Error("No user found");
+  function login(body) {
+    return fetch(
+      "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQ916RPOG9Fqu7HjbP-1p9XUcnrQor79Y",
+      {
+        method: "post",
+        body: JSON.stringify(body),
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
-      setCurrentUser(data);
-    } catch (e) {
-      setCurrentUser(null);
-      console.log(e);
+    );
+  }
+
+  function sessionLogin(data) {
+    return fetch(`${process.env.REACT_APP_SERVER_URL}/auth/sessionlogin`, {
+      method: "post",
+      body: JSON.stringify({
+        idToken: data.idToken,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+  }
+
+  function verify() {
+    let v = document.cookie.match("(^|;) ?csrfToken=([^;]*)(;|$)");
+    if (v.length) {
+      v = v[2];
+    } else {
+      v = null;
     }
+    return fetch(`${process.env.REACT_APP_SERVER_URL}/auth/verify`, {
+      method: "post",
+      body: JSON.stringify({
+        csrfToken: v,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+  }
+
+  function logout() {
+    return fetch(`${process.env.REACT_APP_SERVER_URL}/auth/sessionlogout`, {
+      credentials: "include",
+    });
+  }
+
+  function editProfile(password) {
+    return fetch(`${process.env.REACT_APP_SERVER_URL}/auth/edit-profile`, {
+      method: "post",
+      body: JSON.stringify({ uid: currentUser.uid, password: password }),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      credentials: "include",
+    });
+  }
+  function forgotPassword(email) {
+    return fetch(
+      "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=AIzaSyCQ916RPOG9Fqu7HjbP-1p9XUcnrQor79Y",
+      {
+        method: "post",
+        body: JSON.stringify({ email: email, requestType: "PASSWORD_RESET" }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
 
   const value = {
     currentUser,
-    updateUser,
+    setCurrentUser,
+    signup,
+    login,
+    sessionLogin,
+    verify,
+    logout,
+    editProfile,
+    forgotPassword,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export { AuthProvider, AuthContext };

@@ -1,47 +1,48 @@
 import { useRef, useState, useContext } from "react";
-import { AuthContext } from "../contexts/AuthContext";
 import { Link, useHistory } from "react-router-dom";
+import { AuthContext } from "../contexts/AuthContext";
 
 function Login() {
   const emailRef = useRef();
   const passwordRef = useRef();
   const [error, setError] = useState();
   const [loading, setLoading] = useState(false);
+  const { login, sessionLogin, setCurrentUser } = useContext(AuthContext);
   const history = useHistory();
-  const { updateUser } = useContext(AuthContext);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    const body = {
+      email: emailRef.current.value,
+      password: passwordRef.current.value,
+      returnSecureToken: true,
+    };
 
     try {
       setLoading(true);
-      const body = {
-        email: emailRef.current.value,
-        password: passwordRef.current.value,
-      };
-      const res = await fetch(
-        `${process.env.REACT_APP_SERVER_URL}/auth/login`,
-        {
-          method: "post",
-          body: JSON.stringify(body),
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        }
-      );
-      if (res.status === 200) {
-        await updateUser();
-        history.push("/");
-        return;
-      } else {
-        throw new Error();
+
+      const res = await login(body);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error.message);
       }
-    } catch {
-      setError("Error logging in");
+
+      const reply = await sessionLogin(data);
+
+      if (!reply.ok) {
+        throw new Error("Failed to create session");
+      }
+
+      const userData = await reply.json();
+      setCurrentUser(userData.user);
+
+      history.push("/");
+    } catch (e) {
+      setError(e.message);
+      setLoading(false);
     }
-    setLoading(false);
   }
   return (
     <>

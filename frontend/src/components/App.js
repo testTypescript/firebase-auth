@@ -3,7 +3,6 @@ import Signup from "./Signup";
 import { AuthProvider } from "../contexts/AuthContext";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
-import PrivateRoute from "./PrivateRoute";
 import ForgotPassword from "./ForgotPassword";
 import EditProfile from "./EditProfile";
 
@@ -14,9 +13,9 @@ function App(props) {
         <Switch>
           <Route path="/signup" component={Signup} />
           <Route path="/login" component={Login} />
-          <PrivateRoute exact path="/" component={Dashboard} />
+          <Route exact path="/" component={Dashboard} />
           <Route path="/forgot-password" component={ForgotPassword} />
-          <PrivateRoute path="/edit-profile" component={EditProfile} />
+          <Route path="/edit-profile" component={EditProfile} />
         </Switch>
       </Router>
     </AuthProvider>

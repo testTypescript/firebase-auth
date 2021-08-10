@@ -1,69 +1,119 @@
-import { Controller, Post, Body, Get, Res, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  HttpException,
+  HttpStatus,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Get('user')
-  getUser(@Res() res: Response) {
-    const user = this.authService.getUser();
-    res.status(HttpStatus.OK).json({ user: user });
-  }
-
-  @Post('login')
-  async login(
-    @Res() res: Response,
-    @Body('email') email: string,
-    @Body('password') password: string,
-  ) {
-    const response = await this.authService.login(email, password);
-
-    if (response === 'yes') {
-      res.status(HttpStatus.OK).json({ message: 'Successfully logged in!' });
-    } else {
-      res.status(HttpStatus.NOT_FOUND).json({ message: ' Error loggin in' });
-    }
-  }
-
   @Post('signup')
   async signup(
-    @Res() res: Response,
     @Body('email') email: string,
     @Body('password') password: string,
   ) {
-    const response = await this.authService.signup(email, password);
-    if (response === 'yes') {
-      res.status(HttpStatus.OK).json({ message: 'Successfuly created!' });
+    return this.authService
+      .signup(email, password)
+      .then((response) => {
+        return { message: response };
+      })
+      .catch((e) => {
+        throw new HttpException(e, HttpStatus.INTERNAL_SERVER_ERROR);
+      });
+  }
+
+  @Post('sessionlogin')
+  sessionLogin(
+    @Res({ passthrough: true }) res: Response,
+    @Body('idToken') idToken: string,
+  ) {
+    const expiresIn = 60 * 60 * 24 * 5 * 1000;
+
+    return this.authService
+      .sessionLogin(idToken)
+      .then((data) => {
+        // Note httpOnly cookie will not be accessible from javascript.
+        // secure flag should be set to true in production.
+        const options = {
+          maxAge: expiresIn,
+          httpOnly: true,
+          secure: false /** to test in localhost */,
+        };
+        res.cookie('session', data.cookie, options);
+        return { user: data.user };
+      })
+      .catch(function () {
+        throw new HttpException(
+          'UNAUTHORIZED REQUEST!',
+          HttpStatus.UNAUTHORIZED,
+        );
+      });
+  }
+
+  @Post('verify')
+  verify(@Body('csrfToken') csrfToken: string, @Req() req: Request) {
+    const sessionCookie = req.cookies.session || '';
+
+    if (!req.cookies || csrfToken !== req.cookies.csrfToken) {
+      throw new HttpException('UNAUTHORIZED REQUEST', HttpStatus.UNAUTHORIZED);
+    }
+
+    return this.authService
+      .verify(sessionCookie)
+      .then((decodedClaims) => {
+        // Serve content for signed in user.
+        return { user: decodedClaims };
+      })
+      .catch((e) => {
+        // Force user to login.
+        throw new HttpException(e, HttpStatus.UNAUTHORIZED);
+      });
+  }
+
+  @Get('sessionlogout')
+  sessionLogout(
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
+  ) {
+    // Clear cookie.
+    const sessionCookie = req.cookies.session || '';
+
+    res.clearCookie('session');
+
+    if (sessionCookie) {
+      return this.authService
+        .sessionLogout(sessionCookie)
+        .then(() => {
+          return { message: 'Session cleared' };
+        })
+        .catch(() => {
+          return { message: 'Error? but session cleared' };
+        });
     } else {
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: 'Something went wrong' });
+      return { message: 'No cookie but redirecting' };
     }
   }
 
-  @Get('signout')
-  async signout(@Res() res: Response) {
-    await this.authService.signOut();
-    res.status(HttpStatus.OK).json({ message: 'Successfully signedo ut' });
-  }
-
-  @Post('reset-password')
-  async resetPassword(@Res() res: Response, @Body('email') email: string) {
-    await this.authService.resetPassword(email);
-    res.status(HttpStatus.OK).json({ message: 'Successfully sent email' });
-  }
-
-  @Post('edit-password')
-  async editPassword(@Res() res: Response, @Body('password') password: string) {
-    const response = await this.authService.editPassword(password);
-    if (response === 'yes') {
-      res.status(HttpStatus.OK).json({ message: 'Changed password!' });
-    } else {
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: 'Error updating' });
-    }
+  @Post('edit-profile')
+  async editProfile(
+    @Body('uid') uid: string,
+    @Body('password') password: string,
+  ) {
+    return this.authService
+      .editProfile(uid, password)
+      .then((userRecord) => {
+        return { user: userRecord };
+      })
+      .catch((e) => {
+        throw new HttpException(e, HttpStatus.INTERNAL_SERVER_ERROR);
+      });
   }
 }

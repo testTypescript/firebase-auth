@@ -1,40 +1,49 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import { Link, useHistory } from "react-router-dom";
 
 function Dashboard() {
-  const { updateUser, currentUser } = useContext(AuthContext);
-  const [error, setError] = useState();
-  const [loading, setLoading] = useState(false);
+  const { currentUser, setCurrentUser, verify, logout } =
+    useContext(AuthContext);
+  const [loading, setLoading] = useState(true);
   const history = useHistory();
+
+  useEffect(() => {
+    verify()
+      .then((res) => {
+        if (!res.ok) {
+          throw Error(res.message);
+        }
+        res
+          .json()
+          .then((data) => {
+            setCurrentUser(data.user);
+            setLoading(false);
+          })
+          .catch(() => {
+            history.push("/login");
+          });
+      })
+      .catch(() => {
+        history.push("/login");
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleClick(e) {
     e.preventDefault();
-    setError("");
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `${process.env.REACT_APP_SERVER_URL}/auth/signout`
-      );
-      if (res.status === 200) {
-        setLoading(false);
-        history.push("/login");
-        await updateUser();
-        return;
-      } else {
-        throw new Error();
-      }
-    } catch {
-      setError("Error signing out");
-    }
-    setLoading(false);
+    await logout();
+    history.push("/login");
+  }
+
+  if (loading) {
+    return <p>Loading...</p>;
   }
 
   return (
     <>
       <h2>Dashboard</h2>
-      {currentUser.user.email}
-      {error && <p>{error}</p>}
+      {currentUser && currentUser.email}
       <Link to="/edit-profile">Update profile</Link>
       <button disabled={loading} onClick={handleClick}>
         Log out
