@@ -18,7 +18,9 @@ function AuthProvider({ children }) {
 
   function login(body) {
     return fetch(
-      "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQ916RPOG9Fqu7HjbP-1p9XUcnrQor79Y",
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${[
+        process.env.FIREBASE_REST_API_KEY,
+      ]}`,
       {
         method: "post",
         body: JSON.stringify(body),
@@ -80,7 +82,7 @@ function AuthProvider({ children }) {
   }
   function forgotPassword(email) {
     return fetch(
-      "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=AIzaSyCQ916RPOG9Fqu7HjbP-1p9XUcnrQor79Y",
+      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.FIREBASE_REST_API_KEY}`,
       {
         method: "post",
         body: JSON.stringify({ email: email, requestType: "PASSWORD_RESET" }),
