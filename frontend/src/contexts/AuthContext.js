@@ -18,9 +18,7 @@ function AuthProvider({ children }) {
 
   function login(body) {
     return fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${[
-        process.env.FIREBASE_REST_API_KEY,
-      ]}`,
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.REACT_APP_FIREBASE_API_KEY}`,
       {
         method: "post",
         body: JSON.stringify(body),
@@ -69,6 +67,7 @@ function AuthProvider({ children }) {
     });
   }
 
+  // requires auth
   function editProfile(password) {
     return fetch(`${process.env.REACT_APP_SERVER_URL}/auth/edit-profile`, {
       method: "post",
@@ -80,6 +79,8 @@ function AuthProvider({ children }) {
       credentials: "include",
     });
   }
+
+  // requires auth
   function forgotPassword(email) {
     return fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.FIREBASE_REST_API_KEY}`,

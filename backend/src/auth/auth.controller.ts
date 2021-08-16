@@ -36,7 +36,7 @@ export class AuthController {
     @Body('idToken') idToken: string,
   ) {
     const expiresIn = 60 * 60 * 24 * 5 * 1000;
-
+    console.log('ID TOKEN FROM LOGIN: ', idToken);
     return this.authService
       .sessionLogin(idToken)
       .then((data) => {
